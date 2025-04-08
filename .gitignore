@@ -1,17 +1,28 @@
 # .gitignore
 
-# Temporary files
+# ========================
+# Temporary Files
+# ========================
+# Excel
 ~$*
 *.tmp
+data/~$*.xlsx  # Excel temp files
 
+# ========================
+# Raw Data (Local Only)
+# ========================
+data/Analysis_Dataset_Body_Measurements_CM.xlsx
+
+# ========================
 # Jupyter
+# ========================
 **/.ipynb_checkpoints/
 Untitled*.ipynb
+initial_analysis.ipynb  # Add other temp notebook names here
 
-# Data
-data/Analysis_Dataset_Body_Measurements_CM.xlsx
-data/~$*.xlsx
-
+# ========================
 # Python
+# ========================
 __pycache__/
 *.pyc
+venv/
