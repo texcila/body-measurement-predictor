@@ -1,10 +1,17 @@
+# .gitignore
+
+# Temporary files
+~$*
+*.tmp
+
+# Jupyter
+**/.ipynb_checkpoints/
+Untitled*.ipynb
+
+# Data
+data/Analysis_Dataset_Body_Measurements_CM.xlsx
+data/~$*.xlsx
+
 # Python
-venv/
 __pycache__/
 *.pyc
-*.pyo
-
-# Data/Secrets
-.env
-*.csv
-*.pkl
