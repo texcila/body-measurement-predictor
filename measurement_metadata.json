@@ -1,0 +1,143 @@
+{
+  "height": {
+    "description": "Measure from the top of the head to the soles of the feet while standing erect without shoes."
+  },
+  "chest": {
+    "description": "Measure the circumference horizontally around the body at the fullest part of the chest, ensuring the tape is parallel to the floor."
+  },
+  "bust": {
+    "description": "Measure the circumference horizontally around the body under the arms, across the nipples, and parallel to the floor."
+  },
+  "waist": {
+    "description": "Measure the circumference horizontally around the body at the natural waist level (usually the narrowest part of the torso)."
+  },
+  "hip": {
+    "description": "Measure the maximum hip circumference at the hip level and parallel to the floor."
+  },
+  "waist_to_hip": {
+    "description": "Measure the vertical distance from the natural waistline to the fullest part of the hip."
+  },
+  "bust_height": {
+    "description": "Measure from the Shoulder neck point to the bust point"
+  },
+  "breast_distance": {
+    "description": "Measure the horizontal distance between the nipples."
+  },
+  "bust_radius": {
+    "description": "Measure the distance from the bust point to the underbust line"
+  },
+  "shoulde_to_underbust": {
+    "description": "Measure from the Shoulder neck point to the underbust line line passing over the bust"
+  },
+  "front_waist_length": {
+    "description": "Measure from the Shoulder neck point to the front waist line passing over the bust"
+  },
+  "back_waist_length": {
+    "description": "Measure from the cervicale (base of the neck) following the contour of the spinal column to the center back waist level."
+  },
+  "back_width": {
+    "description": "Measure across the back from one armhole crease to the other while standing erect with the arms hanging down."
+  },
+  "back_shoulder": {
+    "description": "Measure across the back from one shoulder joint to the other while standing erect with the arms hanging down."
+  },
+  "armhole": {
+    "description": "Measure from the shoulder joint down through the front-break point, the armpit, up to the back-break point, and up to the starting point."
+  },
+  "top_arm": {
+    "description": "Measure the maximum upper arm circumference parallel to the floor between the shoulder joint and the elbow."
+  },
+  "round_elbow": {
+    "description": "Measure the circumference around the elbow."
+  },
+  "wrist": {
+    "description": "Measure the circumference around the widest part of the wrist."
+  },
+  "hand_entry": {
+    "description": "Measure the circumference around the widest part of the hand, excluding the thumb."
+  },
+  "elbow_length": {
+    "description": "Measure from the shoulder joint to the elbow."
+  },
+  "sleeve_length": {
+    "description": "Measure from the shoulder joint to the desired end of the sleeve (e.g., wrist or elbow)."
+  },
+  "dress_knee_length": {
+    "description": "Measure from the Shoulder neck point to the knee passing over the bust"
+  },
+  "dress_full_length": {
+    "description": "Measure from the Shoulder neck point to the floor / ankle passing over the bust"
+  },
+  "skirt_knee_length": {
+    "description": "Measure from the waist line to the knee point"
+  },
+  "skirt_full_length": {
+    "description": "Measure from the waist line to the floor / ankle"
+  },
+  "neck_to_sweetheart_front": {
+    "description": "Measure from the center front neck base line to the lowest point of the sweetheart neckline."
+  },
+  "neck_to_sweetheart_back": {
+    "description": "Measure from the center back neck base line to the lowest point of the preferred neckline."
+  },
+  "round_neck_cm": {
+    "description": "Measure the circumference around the base of the neck."
+  },
+  "flare_out_cm": {
+    "description": "Measure from the waistline to above knee level where you prefer your mermaid flare to originate from"
+  },
+  "walking_step": {
+    "description": "Walking taking a small step, measure around the flare out point. This is to allow for adequate room for walking"
+  },
+  "trouser_waist": {
+    "description": "Measure the circumference around the natural waist level for trousers."
+  },
+  "trouser_hip": {
+    "description": "Measure the maximum hip circumference at the hip level and parallel to the floor."
+  },
+  "trouser_waist_to_hip": {
+    "description": "Measure the vertical distance from the natural waistline to the fullest part of the hip."
+  },
+  "body_rise": {
+    "description": "While sitting upright on a chair, measure from the waistline to the seat of the chair"
+  },
+  "outseam": {
+    "description": "Measure from the top of the waistband to the bottom of the leg opening on the outside of the leg."
+  },
+  "inseam": {
+    "description": "Measure from the crotch seam to the bottom of the leg opening on the inside of the leg."
+  },
+  "pant_full_length": {
+    "description": "Measure from the waist line to the Floor / Preferred length"
+  },
+  "pant_knee_length": {
+    "description": "Measure from the waist line to the knee point"
+  },
+  "pant_calf_length": {
+    "description": "Measure from the waist line to the calf"
+  },
+  "pant_ankle_length": {
+    "description": "Measure from the waist line to the ankle / floor"
+  },
+  "pant_high_ankle_length": {
+    "description": "Measure from the waist line to the highest part of the ankle bone"
+  },
+  "round_thigh": {
+    "description": "Measure the circumference around the widest part of the thigh."
+  },
+  "round_knee": {
+    "description": "Measure the circumference around the knee."
+  },
+  "round_calf": {
+    "description": "Measure the circumference around the calf at its widest point."
+  },
+  "round_high_ankle": {
+    "description": "Measure the circumference around the highest part of the ankle bone."
+  },
+  "round_ankle": {
+    "description": "Measure the circumference around the ankle."
+  },
+  "foot_entry": {
+    "description": "Measure the circumference around the widest part of the foot."
+  }
+}
