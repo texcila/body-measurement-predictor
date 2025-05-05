@@ -1,10 +1,15 @@
+# scripts/excel_to_rules.py
+
 import pandas as pd
 import numpy as np
 import re
 import traceback
 import logging
 from collections import defaultdict
+from networkx import DiGraph, topological_sort, NetworkXUnfeasible
+from networkx.algorithms.cycles import find_cycle
 
+# Setup logging
 logging.basicConfig(
     filename='rule_conversion.log',
     level=logging.INFO,
@@ -12,118 +17,178 @@ logging.basicConfig(
 )
 
 def clean_name(text):
+    """Convert measurement names to snake_case"""
     cleaned = re.sub(r'[^a-z0-9_]', '_', str(text).strip().lower())
     return re.sub(r'_+', '_', cleaned)
 
-def parse_formula(formula: str):
-    """Parse formulas with +, -, *, / operators"""
-    try:
-        # Remove spaces and split into components
-        formula = formula.replace(" ", "")
-        left, right = formula.split("=")
-        target = clean_name(left.strip())
-        
-        # Check all supported operators
-        for operator in ['+', '-', '*', '/']:
-            if operator in right:
-                parts = right.split(operator)
-                if len(parts) != 2:
-                    raise ValueError(f"Invalid operator usage in {formula}")
-                
-                # Handle numeric multipliers for * and /
-                if operator in ['*', '/']:
-                    for i in [0, 1]:
-                        if parts[i].replace('.', '', 1).isdigit():
-                            return {
-                                "target": target,
-                                "operator": operator,
-                                "left": clean_name(parts[1-i]),
-                                "right": float(parts[i])
-                            }
-                    # If no numbers found, treat as variable-operator-variable
-                    return {
-                        "target": target,
-                        "operator": operator,
-                        "left": clean_name(parts[0]),
-                        "right": clean_name(parts[1])
-                    }
-                else:  # + or -
-                    return {
-                        "target": target,
-                        "operator": operator,
-                        "left": clean_name(parts[0]),
-                        "right": clean_name(parts[1])
-                    }
-        
-        raise ValueError(f"No supported operator found in {formula}")
+def parse_formula(formula: str, priority: int):
+    """Parses a formula and returns structured rule with dependencies"""
+    formula = formula.replace(" ", "")
+    if '=' not in formula:
+        raise ValueError("Missing '=' in formula")
     
-    except Exception as e:
-        raise ValueError(f"Invalid formula: {formula} — {str(e)}")
+    left_side, right_side = formula.split('=')
+    target = clean_name(left_side.strip())
+    
+    if sum(op in right_side for op in ['+', '-', '*', '/']) > 1:
+        raise ValueError("Complex formulas require step-by-step implementation")
+    
+    for op in ['+', '-', '*', '/']:
+        if op in right_side:
+            parts = right_side.split(op)
+            if len(parts) != 2:
+                raise ValueError("Invalid operator structure")
+            
+            # Determine base and value
+            base = clean_name(parts[0]) if not parts[0].replace('.', '', 1).isdigit() else clean_name(parts[1])
+            value = float(parts[1]) if parts[1].replace('.', '', 1).isdigit() else float(parts[0])
+
+            return {
+                'target': target,
+                'type': {
+                    '*': 'proportion',
+                    '/': 'ratio',
+                    '+': 'offset',
+                    '-': 'offset'
+                }[op],
+                'base': base,
+                'value': value,
+                'operator': op,
+                'requires': [base],
+                'priority': priority
+            }
+    raise ValueError("Unsupported or missing operator in formula")
+
+def build_dependency_graph(rules):
+    """Create a dependency graph for all rules"""
+    graph = DiGraph()
+    for target, rule_list in rules.items():
+        for rule in rule_list:
+            graph.add_node(target)
+            for dep in rule['requires']:
+                graph.add_edge(dep, target)
+    return graph
+
+def resolve_cycles(graph, rule_dict):
+    """Try to resolve cycles by removing lowest-priority rules"""
+    removed = []
+    while True:
+        try:
+            list(topological_sort(graph))
+            break  # Success! No more cycles
+        except NetworkXUnfeasible:
+            cycle = find_cycle(graph)
+            involved_targets = {dst for _, dst in cycle}
+
+            # Collect all rules involved in the cycle and pick the one with lowest priority
+            lowest_priority = float("inf")
+            weakest_target = None
+            for tgt in involved_targets:
+                for rule in rule_dict[tgt]:
+                    if rule["priority"] < lowest_priority:
+                        lowest_priority = rule["priority"]
+                        weakest_target = tgt
+
+            if weakest_target:
+                removed.append((weakest_target, rule_dict[weakest_target]))
+                del rule_dict[weakest_target]
+                graph = build_dependency_graph(rule_dict)
+            else:
+                raise RuntimeError("Cycle could not be resolved")
+
+    return rule_dict, removed
 
 def build_custom_rules(df):
-    custom_rules = defaultdict(list)
+    rules = defaultdict(list)
     skipped = []
 
     for _, row in df.iterrows():
         try:
-            raw_formula = row["Typical Formula"]
-            parsed = parse_formula(raw_formula)
-            
-            # Build formula string
-            if isinstance(parsed["right"], float):
-                formula = f"{parsed['left']} {parsed['operator']} {parsed['right']}"
-            else:
-                formula = f"{parsed['left']} {parsed['operator']} {parsed['right']}"
+            formula = row["Typical Formula"]
+            priority = int(row.get("Priority", 0))
+            tolerance = float(row["Tolerance"]) if pd.notna(row["Tolerance"]) else 0.0
+            notes = row.get("Notes", "").strip()
 
-            custom_rules[parsed["target"]].append({
-                "formula": formula,
-                "tolerance": float(row["Tolerance"]) if pd.notna(row["Tolerance"]) else 0.0,
-                "notes": row.get("Notes", "").strip()
-            })
+            parsed = parse_formula(formula, priority)
 
-            logging.info(f"✔️ Rule parsed: {parsed['target']} = {formula}")
+            rule_entry = {
+                "type": parsed["type"],
+                "base": parsed["base"],
+                "tolerance": tolerance,
+                "notes": notes,
+                "requires": parsed["requires"],
+                "priority": priority
+            }
+
+            if parsed["type"] in ("proportion", "ratio"):
+                rule_entry["multiplier"] = parsed["value"] if parsed["operator"] == '*' else 1 / parsed["value"]
+            elif parsed["type"] == "offset":
+                rule_entry["offset"] = parsed["value"] if parsed["operator"] == '+' else -parsed["value"]
+
+            rules[parsed["target"]].append(rule_entry)
+            logging.info(f"✔️ Parsed rule: {formula} → {rule_entry}")
 
         except Exception as e:
-            msg = f"⛔ Skipping: {raw_formula} — {str(e)}"
+            msg = f"⛔ Skipped formula '{row.get('Typical Formula', 'N/A')}': {e}"
             logging.warning(msg)
             skipped.append(msg)
 
-    return custom_rules, skipped
+    return rules, skipped
 
-# Rest of your code remains the same
 def generate_fashion_rules():
     try:
         print("📂 Loading Excel files...")
-        rules_df = pd.read_excel("data/measurement_relationships.xlsx")
-        desc_df = pd.read_excel("data/measurement_descriptions.xlsx")
+        df_rules = pd.read_excel("data/measurement_relationships.xlsx")
+        df_desc = pd.read_excel("data/measurement_descriptions.xlsx")
 
         print("🔍 Building rules from formulas...")
-        rule_dict, skipped = build_custom_rules(rules_df)
+        rule_dict, skipped = build_custom_rules(df_rules)
+
+        print("🔁 Checking dependencies...")
+        graph = build_dependency_graph(rule_dict)
+
+        try:
+            processing_order = list(topological_sort(graph))
+        except NetworkXUnfeasible:
+            print("⚠️ Circular dependencies found. Attempting auto-fix based on priority...")
+            rule_dict, removed = resolve_cycles(graph, rule_dict)
+            print(f"✅ Removed {len(removed)} low-priority rule(s) to fix cycles.")
+            logging.warning(f"Removed rules to resolve cycles: {[r[0] for r in removed]}")
+            graph = build_dependency_graph(rule_dict)
+            processing_order = list(topological_sort(graph))
 
         print("📝 Mapping descriptions...")
-        desc_map = desc_df.set_index("Measurement Name")["Description"].to_dict()
+        desc_map = df_desc.set_index("Measurement Name")["Description"].to_dict()
 
         print("💾 Writing fashion_rules.py...")
         with open("fashion_rules.py", "w", encoding="utf-8") as f:
-            f.write("# AUTOGENERATED FILE\n\n")
+            f.write("# AUTOGENERATED FILE — DO NOT MODIFY MANUALLY\n\n")
+            
             f.write("MEASUREMENT_DESCRIPTIONS = {\n")
-            for key, val in desc_map.items():
-                f.write(f'    "{clean_name(key)}": """{val}""",\n')
+            for name, desc in desc_map.items():
+                f.write(f'    "{clean_name(name)}": """{desc.strip()}""",\n')
             f.write("}\n\n")
 
             f.write("CUSTOM_RULES = {\n")
-            for target, rules in rule_dict.items():
+            for target in processing_order:
+                if target not in rule_dict:
+                    continue
                 f.write(f'    "{target}": [\n')
-                for rule in rules:
+                for rule in rule_dict[target]:
                     f.write("        {\n")
-                    f.write(f'            "formula": "{rule["formula"]}",\n')
+                    f.write(f'            "type": "{rule["type"]}",\n')
+                    f.write(f'            "base": "{rule["base"]}",\n')
+                    if "multiplier" in rule:
+                        f.write(f'            "multiplier": {rule["multiplier"]},\n')
+                    if "offset" in rule:
+                        f.write(f'            "offset": {rule["offset"]},\n')
                     f.write(f'            "tolerance": {rule["tolerance"]},\n')
                     f.write(f'            "notes": """{rule["notes"]}"""\n')
                     f.write("        },\n")
                 f.write("    ],\n")
             f.write("}\n")
 
-        print(f"✅ Created {len(rule_dict)} measurements with rules.")
+        print(f"✅ Created {len(rule_dict)} measurements with resolved dependency order.")
         if skipped:
             print(f"⚠️ Skipped {len(skipped)} rules. Check rule_conversion.log.")
 
